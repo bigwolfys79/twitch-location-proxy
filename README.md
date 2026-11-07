@@ -65,18 +65,6 @@ Channels whose 1440p source is **AV1** work without the HEVC codec.
 | `wrangler.toml` | Deploy config: `npx wrangler deploy` |
 | `Tehnichka.md` | Full worker setup guide + troubleshooting |
 
-## Signing for permanent installation
-
-Regular Firefox requires a Mozilla signature. Two ways:
-
-1. **Self-signing via AMO** (unlisted, instant):
-   ```bash
-   npx web-ext sign --source-dir . --artifacts-dir signed \
-     --api-key=USER --api-secret=SECRET --channel=unlisted
-   ```
-2. **Store listing**: [AMO submission form](https://addons.mozilla.org/developers/addon/submit/) →
-   upload the build → fill in the listing → moderation
-
 ## License
 
 MIT — do whatever you want, a link back is appreciated.
