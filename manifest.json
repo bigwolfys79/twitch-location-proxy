@@ -1,7 +1,7 @@
 {
   "manifest_version": 2,
   "name": "Twitch Location Proxy",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "Проксирует служебные запросы Twitch через Cloudflare Worker: разблокирует 2K/1440p и меняет видимую локацию. Сегменты видео идут напрямую.",
   "icons": {
     "32": "icons/icon32.png",

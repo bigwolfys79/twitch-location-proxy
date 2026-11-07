@@ -48,3 +48,9 @@ document.getElementById("save").addEventListener("click", async () => {
 document.getElementById("openOptions").addEventListener("click", () => {
   browser.runtime.openOptionsPage();
 });
+
+const PROJECT_URL = "https://github.com/bigwolfys79/twitch-location-proxy";
+document.getElementById("help").addEventListener("click", () => {
+  browser.tabs.create({ url: PROJECT_URL });
+  window.close();
+});

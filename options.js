@@ -25,3 +25,8 @@ document.getElementById("save").addEventListener("click", async () => {
   statusEl.style.color = "#4cbd6b";
   setTimeout(() => (statusEl.textContent = ""), 2000);
 });
+
+const PROJECT_URL = "https://github.com/bigwolfys79/twitch-location-proxy";
+document.getElementById("help").addEventListener("click", () => {
+  browser.tabs.create({ url: PROJECT_URL });
+});
