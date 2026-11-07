@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <style>
+    body {
+      font-family: system-ui, sans-serif;
+      width: 300px;
+      margin: 0;
+      padding: 14px;
+      color: #efeff1;
+      background: #0e0e10;
+    }
+    h1 { font-size: .95rem; margin: 0 0 10px; display: flex; align-items: center; gap: 8px; }
+    h1 img { width: 20px; height: 20px; border-radius: 5px; }
+    label.row { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; font-size: .9rem; cursor: pointer; }
+    input[type="text"] {
+      width: 100%;
+      box-sizing: border-box;
+      padding: 6px 8px;
+      border-radius: 6px;
+      border: 1px solid #3a3a3d;
+      background: #1f1f23;
+      color: #efeff1;
+      font-size: .85rem;
+    }
+    .hint { color: #adadb8; font-size: .72rem; margin: 6px 0 10px; line-height: 1.35; }
+    .row2 { display: flex; align-items: center; gap: 8px; }
+    button {
+      padding: 6px 14px;
+      border: none;
+      border-radius: 6px;
+      background: #9147ff;
+      color: #fff;
+      font-size: .85rem;
+      cursor: pointer;
+    }
+    button:hover { background: #772ce8; }
+    button.ghost { background: #2e2e35; }
+    #status { font-size: .8rem; color: #4cbd6b; }
+  </style>
+</head>
+<body>
+  <h1><img src="icons/icon48.png" alt="">Twitch Location Proxy</h1>
+
+  <label class="row">
+    <input type="checkbox" id="enabled"> Включить проксирование
+  </label>
+
+  <input type="text" id="worker" placeholder="https://your-worker.workers.dev" spellcheck="false">
+  <p class="hint">
+    Через воркер идут только GQL-токен и usher (там Twitch решает гео и 2K).
+    Плейлисты и видеосегменты всегда идут напрямую.
+    <b>Воркер по умолчанию не зашит</b> — создай свой за 10 минут по гайду
+    <b>Tehnichka.md</b> и вставь сюда его адрес.
+  </p>
+
+  <div class="row2">
+    <button id="save">Сохранить</button>
+    <button id="openOptions" class="ghost">Подробнее</button>
+    <span id="status"></span>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

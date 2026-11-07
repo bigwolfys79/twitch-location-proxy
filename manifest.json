@@ -1,0 +1,53 @@
+{
+  "manifest_version": 2,
+  "name": "Twitch Location Proxy",
+  "version": "1.1.0",
+  "description": "Проксирует служебные запросы Twitch через Cloudflare Worker: разблокирует 2K/1440p и меняет видимую локацию. Сегменты видео идут напрямую.",
+  "icons": {
+    "32": "icons/icon32.png",
+    "48": "icons/icon48.png",
+    "96": "icons/icon96.png"
+  },
+  "browser_action": {
+    "default_title": "Twitch Location Proxy",
+    "default_popup": "popup.html",
+    "default_icon": {
+      "32": "icons/icon32.png",
+      "48": "icons/icon48.png",
+      "96": "icons/icon96.png"
+    }
+  },
+  "permissions": [
+    "webRequest",
+    "webRequestBlocking",
+    "storage",
+    "<all_urls>"
+  ],
+  "background": {
+    "scripts": ["background.js"]
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://www.twitch.tv/*",
+        "https://m.twitch.tv/*",
+        "https://player.twitch.tv/*"
+      ],
+      "js": ["content.js"],
+      "run_at": "document_start"
+    }
+  ],
+  "options_ui": {
+    "page": "options.html",
+    "open_in_tab": true
+  },
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "twitch-location-proxy@Bigwolfys",
+      "strict_min_version": "109.0",
+      "data_collection_permissions": {
+        "required": ["none"]
+      }
+    }
+  }
+}
