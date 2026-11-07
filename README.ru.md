@@ -63,17 +63,6 @@ Twitch решает, давать ли тебе 2K/1440p, в момент зап
 | `wrangler.toml` | Конфиг деплоя: `npx wrangler deploy` |
 | `Tehnichka.md` | Полный гайд по созданию воркера + диагностика |
 
-## Подпись для постоянной установки
-
-Обычный Firefox требует подпись Mozilla. Два способа:
-
-1. **Самоподпись через AMO** (unlisted, мгновенно):
-   ```bash
-   npx web-ext sign --source-dir . --artifacts-dir signed \
-     --api-key=USER --api-secret=SECRET --channel=unlisted
-   ```
-2. **Публикация в магазин**: [форма отправки AMO](https://addons.mozilla.org/developers/addon/submit/) →
-   загрузить сборку → заполнить карточку → модерация
 
 ## Лицензия
 
