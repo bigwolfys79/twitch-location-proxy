@@ -43,7 +43,7 @@
   },
   "browser_specific_settings": {
     "gecko": {
-      "id": "twitch-location-proxy@Bigwolfys",
+      "id": "twitch-location-proxy@bigwolfys79.github.io",
       "strict_min_version": "109.0",
       "data_collection_permissions": {
         "required": ["none"]
