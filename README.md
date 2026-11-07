@@ -1,78 +1,82 @@
 # 🌍 Twitch Location Proxy
 
-Расширение для Firefox + Cloudflare Worker: **разблокирует 2K/1440p** на Twitch
-и меняет видимую браузеру локацию. Видеосегменты качаются напрямую — скорость
-потока не страдает.
+[🇷🇺 Русская версия](README.ru.md)
+
+A Firefox extension + Cloudflare Worker that **unblocks 2K/1440p** on Twitch and
+changes the location your browser exposes. Video segments are fetched directly
+— no impact on stream speed.
 
 [![Firefox](https://img.shields.io/badge/browser-Firefox-ff7139)](https://www.mozilla.org/firefox/)
 [![Cloudflare Workers](https://img.shields.io/badge/backend-Cloudflare%20Workers-f38020)](https://workers.cloudflare.com/)
-[![License: MIT](https://img.shields.io/badge/license-MIT-green)](#-лицензия)
-[![Price](https://img.shields.io/badge/price-0%20₽-4cbd6b)](#)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green)](#-license)
+[![Price](https://img.shields.io/badge/price-free-4cbd6b)](#)
 
-## Как это работает
+## How it works
 
-Twitch решает, давать ли тебе 2K/1440p, в момент запроса токена воспроизведения
-— по IP и по логину. Расширение перенаправляет **только служебные запросы**
-через твой личный воркер в разрешённом регионе (Германия/Франция/Нидерланды):
+Twitch decides whether to grant you 2K/1440p at playback-token time — based on
+the requester IP and login state. The extension routes **only the small
+playback metadata requests** through your personal Worker hosted in an allowed
+region (Germany/France/Netherlands):
 
-| Запрос | Путь | Зачем |
+| Request | Path | Purpose |
 |---|---|---|
-| GQL-токен (`gql.twitch.tv`) | → Worker → Durable Object (Европа) | Здесь Twitch решает гео (`AUTHZ_GEO`) и вход (`AUTHZ_NOT_LOGGED_IN`). Authorization передаётся безопасно |
-| usher (master-плейлист) | → Worker → DO | Воркер запрашивает все кодеки (`av1,h265,h264`) — иначе Twitch не отдаёт 1440p-исходник |
-| Медиа-плейлисты | напрямую | Гео не решают |
-| Видеосегменты | напрямую | Скорость потока |
+| GQL token (`gql.twitch.tv`) | → Worker → Durable Object (EU) | Twitch evaluates region (`AUTHZ_GEO`) and login (`AUTHZ_NOT_LOGGED_IN`) here. The Authorization header is forwarded securely |
+| usher (master playlist) | → Worker → DO | The Worker requests all codecs (`av1,h265,h264`) — otherwise Twitch omits the 1440p source variant |
+| Media playlists | direct | No geo decisions involved |
+| Video segments | direct | Full stream speed |
 
-## Установка
+## Setup
 
-### 1. Свой воркер (10 минут, бесплатно)
+### 1. Your own Worker (10 minutes, free)
 
-Расширение **не зашивает** чужой воркер — у каждого свой лимит и свои логи.
-Пошаговый гайд: **[Tehnichka.md](Tehnichka.md)** — аккаунт Cloudflare → вставить
-`worker.js` → одна привязка → адрес воркера в настройки расширения.
+The extension does **not** ship with a shared Worker — every user deploys their
+own, keeping limits and logs personal. Step-by-step guide:
+**[Tehnichka.md](Tehnichka.md)** — Cloudflare account → paste `worker.js` →
+one binding → paste the worker URL into the extension settings.
 
-Либо одной командой (после `npx wrangler login`): `npx wrangler deploy`
+One-command alternative (after `npx wrangler login`): `npx wrangler deploy`
 
-### 2. Расширение
+### 2. The extension
 
-- **Временно**: `about:debugging` → «Загрузить временное дополнение» → файл `.xpi`
-- **Навсегда**: подписанный `.xpi` (см. раздел подписи ниже) → перетащи в окно браузера
-- Затем клик по иконке 🌍 → вставь адрес своего воркера → **Сохранить**
+- **Temporary**: `about:debugging` → "Load Temporary Add-on" → pick the `.xpi`
+- **Permanent**: a Mozilla-signed `.xpi` (see signing below) — drag it into the browser window
+- Then click the 🌍 toolbar icon → paste your worker URL → **Save**
 
-### 3. Требования для 2K
+### 3. Requirements for 2K
 
-| Требование | Почему |
+| Requirement | Why |
 |---|---|
-| Логин в Twitch | анонимам Twitch держит капу разрешения |
-| HEVC-кодек в системе (Windows Store / Device Manufacturer pack) | 1440p-исходники обычно в HEVC; проверка: `MediaSource.isTypeSupported('video/mp4; codecs="hvc1.1.6.L150.90"')` → `true` |
-| `media.hevc.enabled = true` в `about:config` | переключатель Firefox |
-| GPU с аппаратным HEVC | Intel 6-го поколения+, NVIDIA 950+, AMD RX 400+ |
+| Logged into Twitch | anonymous viewers get capped by `AUTHZ_NOT_LOGGED_IN` |
+| HEVC codec in the OS (Windows Store / Device Manufacturer pack) | most 1440p sources are HEVC; verify: `MediaSource.isTypeSupported('video/mp4; codecs="hvc1.1.6.L150.90"')` → `true` |
+| `media.hevc.enabled = true` in `about:config` | Firefox HEVC switch |
+| GPU with hardware HEVC decode | Intel 6th gen+, NVIDIA 950+, AMD RX 400+ |
 
-Каналы с 1440p-исходником в **AV1** работают без HEVC-кодека.
+Channels whose 1440p source is **AV1** work without the HEVC codec.
 
-## Файлы проекта
+## Project files
 
-| Файл | Назначение |
+| File | Purpose |
 |---|---|
-| `manifest.json` | Manifest V2 для Firefox |
-| `background.js` | Перехват GQL-токена (Authorization → `&auth=`) и usher |
-| `content.js` | Страховочный перехват `fetch` на странице |
-| `popup.html/js`, `options.html/js` | Настройки: свой воркер, вкл/выкл |
-| `worker.js` | Код Cloudflare Worker + Durable Object (`locationHint: weur`) |
-| `wrangler.toml` | Конфиг деплоя: `npx wrangler deploy` |
-| `Tehnichka.md` | Полный гайд по созданию воркера + диагностика |
+| `manifest.json` | Manifest V2 for Firefox |
+| `background.js` | Intercepts the GQL token request (Authorization → `&auth=`) and usher |
+| `content.js` | Fallback `fetch` interceptor on the page |
+| `popup.html/js`, `options.html/js` | Settings: your worker URL, on/off toggle |
+| `worker.js` | Cloudflare Worker + Durable Object (`locationHint: weur`) |
+| `wrangler.toml` | Deploy config: `npx wrangler deploy` |
+| `Tehnichka.md` | Full worker setup guide + troubleshooting |
 
-## Подпись для постоянной установки
+## Signing for permanent installation
 
-Обычный Firefox требует подпись Mozilla. Два способа:
+Regular Firefox requires a Mozilla signature. Two ways:
 
-1. **Самоподпись через AMO** (unlisted, мгновенно):
+1. **Self-signing via AMO** (unlisted, instant):
    ```bash
    npx web-ext sign --source-dir . --artifacts-dir signed \
      --api-key=USER --api-secret=SECRET --channel=unlisted
    ```
-2. **Публикация в магазин**: [форма отправки AMO](https://addons.mozilla.org/developers/addon/submit/) →
-   загрузить сборку → заполнить карточку → модерация
+2. **Store listing**: [AMO submission form](https://addons.mozilla.org/developers/addon/submit/) →
+   upload the build → fill in the listing → moderation
 
-## Лицензия
+## License
 
-MIT — делайте что хотите, ссылка на проект приветствуется.
+MIT — do whatever you want, a link back is appreciated.
