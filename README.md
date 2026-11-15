@@ -60,8 +60,8 @@ Channels whose 1440p source is **AV1** work without the HEVC codec.
 | `manifest.json` | Manifest V2 for Firefox |
 | `background.js` | Intercepts the GQL token request (Authorization → `&auth=`) and usher |
 | `content.js` | Fallback `fetch` interceptor on the page |
-| `popup.html/js`, `options.html/js` | Settings: your worker URL, on/off toggle |
-| `worker.js` | Cloudflare Worker + Durable Object (`locationHint: weur`) |
+| `popup.html/js`, `options.html/js` | Popup: power toggle + geo card; settings: your worker URL |
+| `worker.js` | Cloudflare Worker + Durable Object (`locationHint: weur`), `/proxy` and `/geo` endpoints |
 | `wrangler.toml` | Deploy config: `npx wrangler deploy` |
 | `Tehnichka.md` | Full worker setup guide + troubleshooting |
 

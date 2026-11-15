@@ -38,7 +38,9 @@ Twitch решает, давать ли тебе 2K/1440p, в момент зап
 
 - **Временно**: `about:debugging` → «Загрузить временное дополнение» → файл `.xpi`
 - **Навсегда**: подписанный `.xpi` (см. раздел подписи ниже) → перетащи в окно браузера
-- Затем клик по иконке 🌍 → вставь адрес своего воркера → **Сохранить**
+- Затем клик по иконке 🌍 → шестерёнка ⚙ → вставь адрес своего воркера → **Сохранить**.
+  В попапе — большая кнопка питания (зелёная/красная) и карточка
+  «Откуда Twitch думает, что ты» (страна/город egress воркера)
 
 ### 3. Требования для 2K
 
@@ -58,8 +60,8 @@ Twitch решает, давать ли тебе 2K/1440p, в момент зап
 | `manifest.json` | Manifest V2 для Firefox |
 | `background.js` | Перехват GQL-токена (Authorization → `&auth=`) и usher |
 | `content.js` | Страховочный перехват `fetch` на странице |
-| `popup.html/js`, `options.html/js` | Настройки: свой воркер, вкл/выкл |
-| `worker.js` | Код Cloudflare Worker + Durable Object (`locationHint: weur`) |
+| `popup.html/js`, `options.html/js` | Попап: тумблер питания + гео; настройки: свой воркер |
+| `worker.js` | Код Cloudflare Worker + Durable Object (`locationHint: weur`), эндпоинты `/proxy` и `/geo` |
 | `wrangler.toml` | Конфиг деплоя: `npx wrangler deploy` |
 | `Tehnichka.md` | Полный гайд по созданию воркера + диагностика |
 

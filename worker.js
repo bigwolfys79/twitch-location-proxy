@@ -19,6 +19,8 @@
  * Эндпоинты:
  *   GET /                     → статус
  *   ANY /proxy?url=<encoded>  → проксирование на *.ttvnw.net / gql.twitch.tv
+ *   GET /geo                  → откуда наружу уходят запросы (IP, страна, ПоИнтерколо) —
+ *                               это то, что Twitch считает твоей локацией
  */
 
 const ALLOWED_HOST_SUFFIX = ".ttvnw.net";
@@ -153,12 +155,31 @@ async function relay(request, relayTag) {
   }
 }
 
+// Гео egress: cdn-cgi/trace выполняется там же, откуда воркер/DO ходит наружу,
+// значит ip/loc/colo — ровно то, что видит Twitch по usher/GQL-запросам.
+async function geoResponse(request, relayTag) {
+  const headers = { ...corsHeaders(request), "content-type": "application/json" };
+  try {
+    const trace = await fetch("https://www.cloudflare.com/cdn-cgi/trace");
+    const info = { relay: relayTag };
+    for (const line of (await trace.text()).split("\n")) {
+      const i = line.indexOf("=");
+      if (i > 0) info[line.slice(0, i).trim()] = line.slice(i + 1).trim();
+    }
+    return new Response(JSON.stringify(info), { status: 200, headers });
+  } catch (err) {
+    return new Response(JSON.stringify({ error: err.message }), { status: 502, headers });
+  }
+}
+
 // Durable Object: исполняется в указанном регионе (weur = Западная Европа),
 // все fetch() наружу идут с локального для этого региона IP.
 export class USRelay {
   constructor(state, env) {}
 
   async fetch(request) {
+    const { pathname } = new URL(request.url);
+    if (pathname === "/geo") return geoResponse(request, "do-weur");
     return relay(request, "do-weur");
   }
 }
@@ -169,6 +190,16 @@ export default {
 
     if (url.pathname === "/") {
       return new Response("Twitch Location Proxy is Running! (weur relay)", { status: 200 });
+    }
+
+    // Гео-проверка: та же логика, что и /proxy — через DO, если привязан,
+    // иначе напрямую (показывает честную картину того, куда идут запросы).
+    if (url.pathname === "/geo") {
+      if (!env.US_RELAY) {
+        return geoResponse(request, "direct-fallback");
+      }
+      const stub = env.US_RELAY.get(env.US_RELAY.idFromName("eu-relay"), { locationHint: "weur" });
+      return stub.fetch(request);
     }
 
     if (url.pathname === "/proxy") {

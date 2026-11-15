@@ -10,6 +10,17 @@ browser.storage.sync
   })
   .catch(() => {});
 
+// Держим чекбокс в актуальном состоянии (тумблер в попапе мог переключить).
+for (const area of ["sync", "local"]) {
+  try {
+    browser.storage[area].onChanged.addListener((changes) => {
+      if (changes.enabled) enabledEl.checked = changes.enabled.newValue !== false;
+    });
+  } catch (e) {
+    // хранилище недоступно — пропускаем
+  }
+}
+
 document.getElementById("save").addEventListener("click", async () => {
   const workerUrl = workerEl.value.trim().replace(/\/+$/, "");
   if (workerUrl && !/^https:\/\/[a-z0-9.-]+/i.test(workerUrl)) {

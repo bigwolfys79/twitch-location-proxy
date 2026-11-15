@@ -3,6 +3,7 @@
 <head>
   <meta charset="utf-8">
   <style>
+    html { background: #0e0e10; }
     body {
       font-family: system-ui, sans-serif;
       width: 300px;
@@ -10,24 +11,12 @@
       padding: 14px;
       color: #efeff1;
       background: #0e0e10;
+      user-select: none;
     }
-    h1 { font-size: .95rem; margin: 0 0 10px; display: flex; align-items: center; gap: 8px; }
-    h1 img { width: 20px; height: 20px; border-radius: 5px; }
-    label.row { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; font-size: .9rem; cursor: pointer; }
-    input[type="text"] {
-      width: 100%;
-      box-sizing: border-box;
-      padding: 6px 8px;
-      border-radius: 6px;
-      border: 1px solid #3a3a3d;
-      background: #1f1f23;
-      color: #efeff1;
-      font-size: .85rem;
-    }
-    .hint { color: #adadb8; font-size: .72rem; margin: 6px 0 10px; line-height: 1.35; }
-    .row2 { display: flex; align-items: center; gap: 8px; }
+    header { display: flex; align-items: center; gap: 8px; }
+    header img { width: 20px; height: 20px; border-radius: 5px; }
+    header h1 { font-size: .95rem; margin: 0; flex: 1; }
     button {
-      padding: 6px 14px;
       border: none;
       border-radius: 6px;
       background: #9147ff;
@@ -37,30 +26,87 @@
     }
     button:hover { background: #772ce8; }
     button.ghost { background: #2e2e35; }
-    #status { font-size: .8rem; color: #4cbd6b; }
+    button.ghost:hover { background: #3d3d45; }
+    .gear {
+      background: transparent;
+      padding: 6px;
+      color: #adadb8;
+      display: flex;
+    }
+    .gear:hover { background: #2e2e35; color: #efeff1; }
+    .gear svg { width: 18px; height: 18px; }
+
+    /* Большая кнопка питания: зелёная — включено, красная — выключено */
+    .power-wrap { display: flex; flex-direction: column; align-items: center; padding: 12px 0 2px; }
+    button.power {
+      width: 84px;
+      height: 84px;
+      border-radius: 50%;
+      background: transparent;
+      padding: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: transform .08s ease;
+    }
+    button.power:active { transform: scale(.92); }
+    button.power svg { width: 58px; height: 58px; }
+    button.power.on { color: #4cbd6b; filter: drop-shadow(0 0 9px rgba(75, 189, 107, .45)); }
+    button.power.off { color: #ff5a5a; filter: drop-shadow(0 0 9px rgba(255, 90, 90, .35)); }
+    button.power.warn { color: #ffbf3f; filter: drop-shadow(0 0 9px rgba(255, 191, 63, .35)); }
+    #stateText { margin-top: 8px; font-size: .85rem; font-weight: 600; text-align: center; line-height: 1.3; }
+    #stateText.on { color: #4cbd6b; }
+    #stateText.off { color: #ff5a5a; }
+    #stateText.warn { color: #ffbf3f; }
+
+    /* Карточка «откуда Twitch думает, что ты» */
+    .geo {
+      margin-top: 12px;
+      padding: 10px 12px;
+      background: #1f1f23;
+      border: 1px solid #3a3a3d;
+      border-radius: 8px;
+    }
+    .geo.action { cursor: pointer; border-color: #7a5c1e; }
+    .geo.action:hover { border-color: #ffbf3f; }
+    .geo-title { font-size: .72rem; color: #adadb8; margin-bottom: 4px; }
+    #geoMain { font-size: .9rem; font-weight: 600; line-height: 1.3; color: #efeff1; }
+    #geoSub { font-size: .72rem; color: #adadb8; margin-top: 3px; line-height: 1.4; word-break: break-all; }
+
+    footer { display: flex; align-items: center; gap: 8px; margin-top: 12px; }
   </style>
 </head>
 <body>
-  <h1><img src="icons/icon48.png" alt="">Twitch Location Proxy</h1>
+  <header>
+    <img src="icons/icon48.png" alt="">
+    <h1>Twitch Location Proxy</h1>
+    <button id="openSettings" class="gear" title="Настройки: адрес воркера">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="3"/>
+        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+      </svg>
+    </button>
+  </header>
 
-  <label class="row">
-    <input type="checkbox" id="enabled"> Включить проксирование
-  </label>
-
-  <input type="text" id="worker" placeholder="https://your-worker.workers.dev" spellcheck="false">
-  <p class="hint">
-    Через воркер идут только GQL-токен и usher (там Twitch решает гео и 2K).
-    Плейлисты и видеосегменты всегда идут напрямую.
-    <b>Воркер по умолчанию не зашит</b> — создай свой за 10 минут по гайду
-    <b>Tehnichka.md</b> и вставь сюда его адрес.
-  </p>
-
-  <div class="row2">
-    <button id="save">Сохранить</button>
-    <button id="openOptions" class="ghost">Подробнее</button>
-    <button id="help" class="ghost" title="Страница проекта на GitHub">Справка</button>
-    <span id="status"></span>
+  <div class="power-wrap">
+    <button id="power" class="power" title="Включить / выключить проксирование">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round">
+        <path d="M12 3v9"/>
+        <path d="M18.36 6.64a9 9 0 1 1-12.72 0"/>
+      </svg>
+    </button>
+    <div id="stateText">…</div>
   </div>
+
+  <div class="geo" id="geoCard">
+    <div class="geo-title">Откуда Twitch думает, что ты</div>
+    <div id="geoMain">…</div>
+    <div id="geoSub"></div>
+  </div>
+
+  <footer>
+    <button id="help" class="ghost" title="Страница проекта на GitHub">Справка</button>
+  </footer>
 
   <script src="popup.js"></script>
 </body>
