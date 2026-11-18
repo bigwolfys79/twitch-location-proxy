@@ -48,7 +48,10 @@ function watchStorage() {
     try {
       browser.storage[area].onChanged.addListener((changes) => {
         if (changes.enabled) settings.enabled = changes.enabled.newValue !== false;
-        if (changes.workerUrl) settings.workerUrl = normalize(changes.workerUrl.newValue);
+        if (changes.workerUrl) {
+          settings.workerUrl = normalize(changes.workerUrl.newValue);
+          refreshGeoCache(); // новый воркер — сразу прогреваем и кэшируем гео
+        }
       });
     } catch (e) {
       // хранилище недоступно — пропускаем
@@ -56,7 +59,7 @@ function watchStorage() {
   }
 }
 
-loadSettings();
+loadSettings().then(refreshGeoCache);
 watchStorage();
 
 // Пропускаем напрямую:
@@ -133,5 +136,33 @@ browser.webRequest.onBeforeSendHeaders.addListener(
 // ВРЕМЕННАЯ диагностика: логируем упавшие запросы.
 browser.webRequest.onErrorOccurred.addListener(
   (details) => console.log("[TLP] FAILED:", details.error, "|", details.url.slice(0, 140)),
-  { urls: ["*://*.ttvnw.net/*", "*://*.workers.dev/*"] }
+  { urls: ["*://*.ttvnw.net/*"] }
 );
+
+// --- Кэш гео: прогреваем воркер без запуска Twitch --------------------------
+// /geo не зависит от Twitch: воркер опрашивает cdn-cgi/trace у себя же.
+// Опрашиваем при старте браузера, при смене воркера и раз в 30 минут —
+// попап сразу показывает последнее известное значение, а холодный старт
+// Durable Object происходит в фоне, а не в момент открытия попапа.
+
+const GEO_ALARM = "tlp-geo-refresh";
+
+async function refreshGeoCache() {
+  if (!settings.enabled || !settings.workerUrl) return;
+  try {
+    const r = await fetch(`${settings.workerUrl}/geo`, { signal: AbortSignal.timeout(10000) });
+    if (!r.ok) return;
+    const info = await r.json();
+    await browser.storage.local.set({
+      geoCache: { colo: info.colo, loc: info.loc, ip: info.ip, relay: info.relay, ts: Date.now() },
+    });
+  } catch (e) {
+    // воркер не отвечает (холодный старт, сеть) — оставляем прошлый кэш
+  }
+}
+
+browser.runtime.onStartup.addListener(refreshGeoCache);
+browser.alarms.create(GEO_ALARM, { periodInMinutes: 30, delayInMinutes: 1 });
+browser.alarms.onAlarm.addListener((a) => {
+  if (a.name === GEO_ALARM) refreshGeoCache();
+});

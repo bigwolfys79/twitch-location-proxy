@@ -1,7 +1,7 @@
 {
   "manifest_version": 2,
   "name": "Twitch Location Proxy",
-  "version": "1.2.2",
+  "version": "1.2.3",
   "description": "Проксирует служебные запросы Twitch через Cloudflare Worker: разблокирует 2K/1440p и меняет видимую локацию. Сегменты видео идут напрямую.",
   "icons": {
     "32": "icons/icon32.png",
@@ -21,7 +21,12 @@
     "webRequest",
     "webRequestBlocking",
     "storage",
-    "<all_urls>"
+    "alarms",
+    "*://*.ttvnw.net/*",
+    "*://gql.twitch.tv/*"
+  ],
+  "optional_permissions": [
+    "https://*/*"
   ],
   "background": {
     "scripts": ["background.js"]

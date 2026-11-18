@@ -83,7 +83,7 @@ const COLO_CITIES = {
   ATL: "Атланта", DEN: "Денвер", SEA: "Сиэтл",
 };
 
-function paintGeo(info) {
+function paintGeo(info, checkedAt) {
   const city = COLO_CITIES[info.colo];
   const country = COUNTRIES[info.loc] || info.loc || "";
   // Город колокации — главное: страна egress-IP в базе Cloudflare бывает
@@ -94,8 +94,17 @@ function paintGeo(info) {
   if (info.ip) sub.push(`IP ${info.ip}`);
   if (info.relay === "do-weur") sub.push("через DO (weur)");
   else if (info.relay) sub.push("без DO — прямая выдача воркера");
+  if (checkedAt) sub.push(checkedSince(checkedAt));
   geoMainEl.textContent = main;
   geoSubEl.textContent = sub.join(" · ");
+}
+
+// «проверено только что» / «проверено 14:32 (5 мин назад)»
+function checkedSince(ts) {
+  const ageMin = Math.floor((Date.now() - ts) / 60000);
+  if (ageMin < 1) return "проверено только что";
+  const time = new Date(ts).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  return `проверено ${time} (${ageMin} мин назад)`;
 }
 
 function paintGeoMessage(main, sub, warn) {
@@ -104,6 +113,8 @@ function paintGeoMessage(main, sub, warn) {
   geoMainEl.style.color = warn ? "#ffbf3f" : "#efeff1";
 }
 
+// Живой опрос /geo с ретраем: первая попытка может прийтись на холодный
+// старт воркера/Durable Object — тогда через 2 секунды пробуем ещё раз.
 async function refreshGeo() {
   if (!settings.enabled) {
     paintGeoMessage("Прокси выключен", "Twitch видит твой реальный IP");
@@ -113,31 +124,74 @@ async function refreshGeo() {
     paintGeoMessage("Добавь воркер", "Клик по карточке или шестерёнке — откроются настройки", true);
     return;
   }
-  paintGeoMessage("Определяем…");
-  const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(), 6000);
+  // Доступ к домену воркера — опциональное разрешение (выдаётся при сохранении
+  // адреса в настройках). Без него фетч на /geo не пройдёт.
   try {
-    const r = await fetch(`${settings.workerUrl}/geo`, { signal: ctrl.signal });
-    if (!r.ok) throw new Error(`HTTP ${r.status}`);
-    const info = await r.json();
-    paintGeo(info);
+    const ok = await browser.permissions.contains({ origins: [`${settings.workerUrl}/*`] });
+    if (!ok) {
+      paintGeoMessage("Нет доступа к воркеру", "Открой настройки и подтверди доступ кнопкой «Сохранить»", true);
+      return;
+    }
   } catch (e) {
+    // permissions API недоступен — пробуем фетч как есть
+  }
+  // Если кэш уже нарисован, не мигаем «определяем…» — просто тихо обновляем.
+  if (!geoPainted) paintGeoMessage("Проверяем воркер…");
+
+  let info = null;
+  for (let attempt = 0; attempt < 2 && !info; attempt++) {
+    try {
+      if (attempt) await new Promise((res) => setTimeout(res, 2000));
+      const r = await fetch(`${settings.workerUrl}/geo`, { signal: AbortSignal.timeout(6000) });
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      info = await r.json();
+    } catch (e) {
+      // ретрай или переходим к кэшу/ошибке ниже
+    }
+  }
+
+  if (info) {
+    const ts = Date.now();
+    paintGeo(info, ts);
+    geoPainted = true;
+    try {
+      await browser.storage.local.set({
+        geoCache: { colo: info.colo, loc: info.loc, ip: info.ip, relay: info.relay, ts },
+      });
+    } catch (e) {}
+  } else if (geoPainted) {
+    // Кэш остаётся на карточке; подкрашиваем подзаголовок, что живой опрос не прошёл.
+    geoSubEl.textContent = `${geoSubEl.textContent} · воркер сейчас не отвечает`;
+  } else {
     paintGeoMessage(
-      "Не удалось определить",
-      "Обнови код воркера (worker.js из версии 1.2+) и проверь адрес",
+      "Воркер не отвечает",
+      "Проверь адрес в настройках и код воркера (worker.js из версии 1.2+)",
       true
     );
-  } finally {
-    clearTimeout(timer);
   }
 }
 
 // --- Инициализация --------------------------------------------------------
 
-readSettings().then((saved) => {
+// Кэш гео (кладёт background при прогреве воркера) — рисуем мгновенно,
+// чтобы попап показывал местоположение ещё до запуска Twitch.
+let geoPainted = false;
+
+async function paintCachedGeo() {
+  try {
+    const { geoCache } = await browser.storage.local.get("geoCache");
+    if (geoCache && geoCache.colo) {
+      paintGeo(geoCache, geoCache.ts);
+      geoPainted = true;
+    }
+  } catch (e) {}
+}
+
+readSettings().then(async (saved) => {
   settings.enabled = saved.enabled !== false;
   settings.workerUrl = (saved.workerUrl || "").trim().replace(/\/+$/, "");
   paintState();
+  await paintCachedGeo();
   refreshGeo();
 });
 
